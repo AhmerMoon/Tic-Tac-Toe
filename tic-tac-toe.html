@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ur">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Paper Style</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Base Setup & Font --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1b26;
+            /* Dark theme background */
+            color: #c0caf5;
+            /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            /* Prevents scrollbars from confetti */
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- Start Screen --- */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Tailwind classes are now used on the H1 tag directly,
+        so this CSS rule is no longer needed.
+        */
+
+        @keyframes titlePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .play-button {
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1b26;
+            background-image: linear-gradient(to right, #7dcfff, #bb9af7);
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(122, 162, 247, 0.4);
+        }
+
+        .play-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(122, 162, 247, 0.6);
+        }
+
+        /* --- Modal (for Name Input & Win) --- */
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Semi-transparent background */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #24283b;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #bb9af7;
+        }
+
+        .modal-content h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #bb9af7;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #414868;
+            background-color: #1a1b26;
+            color: #c0caf5;
+            font-size: 1rem;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #7dcfff;
+        }
+
+        /* --- Game Screen --- */
+        #game-screen {
+            display: none;
+            /* Hidden by default */
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #status-display {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            height: 3rem;
+            /* Fixed height to prevent layout shift */
+        }
+
+        #status-display span {
+            color: #7dcfff;
+            /* Player name highlight */
+            animation: yahooPulse 1.5s infinite;
+        }
+
+        @keyframes yahooPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        /* Game Board - Responsive */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            /* Responsive columns */
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            /* Responsive rows */
+            width: clamp(270px, 90vw, 306px);
+            /* Responsive width: min, preferred, max */
+            height: clamp(270px, 90vw, 306px);
+            /* Responsive height */
+            position: relative;
+        }
+
+        .cell {
+            /* Width and height are now set by the grid */
+            border: 0 solid #c0caf5;
+            /* Default no border */
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            /* Responsive font size for X/O */
+        }
+
+        /* --- Paper-style borders as requested --- */
+        /* Middle vertical lines */
+        .cell[data-index="1"],
+        .cell[data-index="4"],
+        .cell[data-index="7"] {
+            border-left-width: 3px;
+            border-right-width: 3px;
+        }
+
+        /* Middle horizontal lines */
+        .cell[data-index="3"],
+        .cell[data-index="4"],
+        .cell[data-index="5"] {
+            border-top-width: 3px;
+            border-bottom-width: 3px;
+        }
+
+        /* 'X' styling */
+        .cell.x::before,
+        .cell.x::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: clamp(6px, 2.5vw, 10px);
+            /* Responsive thickness */
+            background-color: #f7768e;
+            /* Red-pink for X */
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .cell.x::before {
+            transform: rotate(45deg);
+        }
+
+        .cell.x::after {
+            transform: rotate(-45deg);
+        }
+
+        /* 'O' styling */
+        .cell.o::before {
+            content: '';
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            border: 10px solid #7dcfff;
+            /* Light blue for O */
+            border-width: clamp(6px, 2.5vw, 10px);
+            /* Responsive thickness */
+            border-radius: 50%;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Win animations for X and O */
+        .cell.x.win::before,
+        .cell.x.win::after {
+            background-color: #9ece6a;
+            /* Green for win */
+            transform: rotate(0deg) scale(1.1);
+        }
+
+        .cell.o.win::before {
+            border-color: #9ece6a;
+            /* Green for win */
+            transform: scale(1.1);
+        }
+
+        /* Winning cell highlight (subtle) */
+        .cell.win {
+            background-color: rgba(158, 206, 106, 0.1);
+            /* Green highlight */
+        }
+
+        /* --- Winning Line --- */
+        #winning-line {
+            position: absolute;
+            background-color: #9ece6a;
+            /* Win color */
+            height: 5px;
+            width: 0;
+            /* Starts at 0, animates with JS */
+            top: 50px;
+            /* Default, will be set by JS */
+            left: 13px;
+            /* Default, will be set by JS */
+            transform-origin: center center;
+            transition: width 0.5s ease-in-out, top 0.5s ease-in-out, left 0.5s ease-in-out, transform 0.5s ease-in-out;
+            display: none;
+            /* Hide by default */
+            border-radius: 5px;
+            z-index: 10;
+        }
+
+        /* --- Confetti Animation --- */
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f7768e;
+            /* Will be randomized */
+            opacity: 0;
+            animation: fall 3s ease-in forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Confetti Container -->
+    <div id="confetti-container"></div>
+
+    <div class="main-container">
+
+        <!-- 1. Start Screen -->
+        <div id="start-screen">
+            <!-- Responsive h1 using Tailwind classes -->
+            <h1 class="text-4xl sm:text-6xl font-bold text-[#bb9af7] text-center"
+                style="animation: titlePulse 2s infinite ease-in-out;">Tic Tac Toe</h1>
+            <p class="text-xl text-gray-400 mb-8 mt-2">Paper Style Edition</p>
+            <button id="play-button" class="play-button">Khelain!</button>
+        </div>
+
+        <!-- 2. Game Screen (Initially Hidden) -->
+        <div id="game-screen">
+            <!-- Status: Player turn / Win message -->
+            <div id="status-display"></div>
+
+            <!-- Game Board -->
+            <div id="game-board">
+                <!-- Cells will be 0-indexed -->
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+                <!-- Winning line (positioned absolutely) -->
+                <div id="winning-line"></div>
+            </div>
+
+            <!-- Play Again button (outside modal) -->
+            <button id="restart-button-main" class="play-button" style="display: none; margin-top: 2rem;">Dobara
+                Khelain</button>
+        </div>
+
+    </div>
+
+    <!-- 3. Name Input Modal (Initially Hidden) -->
+    <div id="name-modal" class="modal">
+        <div class="modal-content">
+            <h2>Apne Naam Likho</h2>
+            <form id="name-form">
+                <input type="text" id="player1" placeholder="Khiladi 1 (X)" autocomplete="off">
+                <input type="text" id="player2" placeholder="Khiladi 2 (O)" autocomplete="off">
+                <button type="submit" class="play-button">Game Shuru Karo</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Win Modal (Legacy, but button is still wired up as a fallback) -->
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="win-message">Khiladi 1 Jeet Gaya!</h2>
+            <button id="play-again-button" class="play-button">Dobara Khelain</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Screen Elements
+            const startScreen = document.getElementById('start-screen');
+            const gameScreen = document.getElementById('game-screen');
+
+            // Buttons
+            const playButton = document.getElementById('play-button');
+            const playAgainButton = document.getElementById('play-again-button'); // In modal
+            const nameForm = document.getElementById('name-form');
+            const restartButtonMain = document.getElementById('restart-button-main'); // On main screen
+
+            // Modals
+            const nameModal = document.getElementById('name-modal');
+            const winModal = document.getElementById('win-modal');
+
+            // Game Elements
+            const statusDisplay = document.getElementById('status-display');
+            const winMessage = document.getElementById('win-message');
+            const cells = document.querySelectorAll('.cell');
+            const winningLine = document.getElementById('winning-line');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            // Game State
+            let gameActive = false;
+            let currentPlayer = 'X';
+            let gameState = ["", "", "", "", "", "", "", "", ""];
+            let playerNames = {
+                'X': 'Khiladi 1',
+                'O': 'Khiladi 2'
+            };
+            let demoInterval = null; // For background animation
+
+            const winConditions = [
+                [0, 1, 2], // Row 1
+                [3, 4, 5], // Row 2
+                [6, 7, 8], // Row 3
+                [0, 3, 6], // Col 1
+                [1, 4, 7], // Col 2
+                [2, 5, 8], // Col 3
+                [0, 4, 8], // Diag 1
+                [2, 4, 6]  // Diag 2
+            ];
+
+            // --- Event Listeners ---
+
+            // 1. "Khelain!" button
+            playButton.addEventListener('click', () => {
+                startScreen.style.display = 'none';
+                gameScreen.style.display = 'flex'; // Show game screen
+                nameModal.style.display = 'flex'; // Show modal on top
+                startDemoAnimation(); // Start background demo
+            });
+
+            // 2. Name form submission
+            nameForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const player1Name = document.getElementById('player1').value;
+                const player2Name = document.getElementById('player2').value;
+
+                playerNames['X'] = player1Name || 'Khiladi 1';
+                playerNames['O'] = player2Name || 'Khiladi 2';
+
+                stopDemoAnimation(); // Stop background demo
+                nameModal.style.display = 'none';
+                gameScreen.style.display = 'flex';
+                startGame();
+            });
+
+            // 3. Cell clicks
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+
+            // 4. Restart buttons
+            playAgainButton.addEventListener('click', startGame); // Modal button
+            restartButtonMain.addEventListener('click', startGame); // Main screen button
+
+            // --- Core Game Functions ---
+
+            function startGame() {
+                gameActive = true;
+                currentPlayer = 'X';
+                gameState = ["", "", "", "", "", "", "", "", ""];
+
+                // Clear UI
+                cells.forEach(cell => {
+                    cell.classList.remove('x');
+                    cell.classList.remove('o');
+                    cell.classList.remove('win');
+                });
+                statusDisplay.innerHTML = `<span>${playerNames[currentPlayer]}</span> ki baari`;
+                winModal.style.display = 'none';
+                restartButtonMain.style.display = 'none';
+
+                // Reset winning line
+                winningLine.style.display = 'none';
+                winningLine.style.width = '0px';
+                winningLine.style.transform = 'none';
+
+                // Clear confetti
+                confettiContainer.innerHTML = '';
+            }
+
+            function handleCellClick(e) {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+                if (gameState[clickedCellIndex] !== "" || !gameActive) {
+                    return;
+                }
+
+                handleCellPlayed(clickedCell, clickedCellIndex);
+                handleResultValidation();
+            }
+
+            function handleCellPlayed(clickedCell, clickedCellIndex) {
+                gameState[clickedCellIndex] = currentPlayer;
+                clickedCell.classList.add(currentPlayer.toLowerCase());
+            }
+
+            function handleResultValidation() {
+                let roundWon = false;
+                let winningLineIndex = -1;
+
+                for (let i = 0; i < winConditions.length; i++) {
+                    const winCondition = winConditions[i];
+                    let a = gameState[winCondition[0]];
+                    let b = gameState[winCondition[1]];
+                    let c = gameState[winCondition[2]];
+
+                    if (a === '' || b === '' || c === '') {
+                        continue;
+                    }
+                    if (a === b && b === c) {
+                        roundWon = true;
+                        winningLineIndex = i;
+                        break;
+                    }
+                }
+
+                if (roundWon) {
+                    gameActive = false;
+
+                    // Highlight winning cells
+                    winConditions[winningLineIndex].forEach(index => {
+                        cells[index].classList.add('win');
+                    });
+
+                    statusDisplay.innerHTML = `Yahoo! <span>${playerNames[currentPlayer]}</span> jeet gaya!`;
+                    drawWinningLine(winningLineIndex);
+                    showConfetti();
+                    restartButtonMain.style.display = 'block'; // Show "Play Again"
+                    return;
+                }
+
+                // Check for Draw
+                let roundDraw = !gameState.includes("");
+                if (roundDraw) {
+                    gameActive = false;
+                    statusDisplay.innerHTML = `Game Barabar!`;
+                    restartButtonMain.style.display = 'block';
+                    return;
+                }
+
+                // If no win and no draw, change player
+                handlePlayerChange();
+            }
+
+            function handlePlayerChange() {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusDisplay.innerHTML = `<span>${playerNames[currentPlayer]}</span> ki baari`;
+            }
+
+            // --- Demo & Effects Functions ---
+
+            function startDemoAnimation() {
+                if (demoInterval) clearInterval(demoInterval);
+                let demoPlayer = 'X';
+
+                resetDemoBoard(); // Clear board for demo
+
+                demoInterval = setInterval(() => {
+                    let emptyCells = [];
+                    gameState.forEach((val, index) => {
+                        if (val === "") emptyCells.push(index);
+                    });
+
+                    if (emptyCells.length === 0) {
+                        resetDemoBoard();
+                        return;
+                    }
+
+                    const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    gameState[randomIndex] = demoPlayer;
+                    cells[randomIndex].classList.add(demoPlayer.toLowerCase());
+
+                    demoPlayer = demoPlayer === 'X' ? 'O' : 'X';
+                }, 800);
+            }
+
+            function resetDemoBoard() {
+                gameState = ["", "", "", "", "", "", "", "", ""];
+                cells.forEach(cell => {
+                    cell.classList.remove('x');
+                    cell.classList.remove('o');
+                    cell.classList.remove('win');
+                });
+            }
+
+            function stopDemoAnimation() {
+                if (demoInterval) clearInterval(demoInterval);
+                demoInterval = null;
+            }
+
+            function drawWinningLine(winIndex) {
+                winningLine.style.display = 'block';
+                winningLine.style.transform = 'none';
+
+                // --- Dynamic Calculation for Responsiveness ---
+                const board = document.getElementById('game-board');
+                // Use clientWidth as it's the most reliable measure of the rendered element size
+                const boardSize = board.clientWidth;
+
+                // Ratios based on original design (306px board)
+                const horizWidth = boardSize * 0.915; // (280 / 306)
+                const horizLeft = (boardSize - horizWidth) / 2;
+                const vertWidth = horizWidth;
+                const diagWidth = boardSize * 1.24; // (380 / 306)
+                const diagLeft = (boardSize - diagWidth) / 2;
+
+                // Cell center positions (1/6, 3/6, 5/6 of the board size)
+                const cellCenter_1 = boardSize / 6;
+                const cellCenter_2 = boardSize / 2;
+                const cellCenter_3 = boardSize * 5 / 6;
+
+                // --- End of Dynamic Calculation ---
+
+                switch (winIndex) {
+                    case 0: // Row 1: [0, 1, 2]
+                        winningLine.style.width = horizWidth + 'px';
+                        winningLine.style.top = cellCenter_1 + 'px';
+                        winningLine.style.left = horizLeft + 'px';
+                        break;
+                    case 1: // Row 2: [3, 4, 5]
+                        winningLine.style.width = horizWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = horizLeft + 'px';
+                        break;
+                    case 2: // Row 3: [6, 7, 8]
+                        winningLine.style.width = horizWidth + 'px';
+                        winningLine.style.top = cellCenter_3 + 'px';
+                        winningLine.style.left = horizLeft + 'px';
+                        break;
+                    case 3: // Col 1: [0, 3, 6]
+                        winningLine.style.width = vertWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = (cellCenter_1 - vertWidth / 2) + 'px';
+                        winningLine.style.transform = 'rotate(90deg)';
+                        break;
+                    case 4: // Col 2: [1, 4, 7]
+                        winningLine.style.width = vertWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = (cellCenter_2 - vertWidth / 2) + 'px';
+                        winningLine.style.transform = 'rotate(90deg)';
+                        break;
+                    case 5: // Col 3: [2, 5, 8]
+                        winningLine.style.width = vertWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = (cellCenter_3 - vertWidth / 2) + 'px';
+                        winningLine.style.transform = 'rotate(90deg)';
+                        break;
+                    case 6: // Diag 1: [0, 4, 8]
+                        winningLine.style.width = diagWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = diagLeft + 'px';
+                        winningLine.style.transform = 'rotate(45deg)';
+                        break;
+                    case 7: // Diag 2: [2, 4, 6]
+                        winningLine.style.width = diagWidth + 'px';
+                        winningLine.style.top = cellCenter_2 + 'px';
+                        winningLine.style.left = diagLeft + 'px';
+                        winningLine.style.transform = 'rotate(-45deg)';
+                        break;
+                }
+            }
+
+            function showConfetti() {
+                const colors = ['#f7768e', '#7dcfff', '#9ece6a', '#bb9af7', '#e0af68'];
+                for (let i = 0; i < 50; i++) { // 50 poppers
+                    const confetti = document.createElement('div');
+                    confetti.classList.add('confetti');
+                    confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = `${Math.random() * 2}s`;
+                    confetti.style.width = `${Math.random() * 10 + 5}px`;
+                    confetti.style.height = `${Math.random() * 10 + 5}px`;
+                    confettiContainer.appendChild(confetti);
+                }
+            }
+
+        });
+    </script>
+</body>
+
+</html>
